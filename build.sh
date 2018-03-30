@@ -25,51 +25,72 @@ read -d '' usage <<EOF
   environments and spawns a new shell.
 EOF
 
+# Runs the development site:
 run_devel () {
-    cd "`dirname "$0"`/website"
+
+    # Move into the website subdirectory:
+    cd "$projectRoot"/website
+
+    # If the Nix shell variable is either empty or not set, then...
     if [ -z "$IN_NIX_SHELL" ]; then
-        stack build yesod-bin &&
+
+        # ...make sure we have the "yesod" command (download & build if needed):
+        # (The package name is "yesod-bin", the executable is just "yesod".)
+        stack build yesod-bin && # Skips if already built.
+
+        # Start the devel site using Yesod via Stack, now knowing we have Yesod:
         exec stack exec yesod devel
     else
+        # Otherwise, we should be in an environment that makes "yesod" directly
+        # available to us: no need for "stack" or building Yesod ourselves.
         exec yesod devel
     fi
+
+    cd - # Now we go back to where we were before we exit the subroutine.
 }
 
+# Sets _d_ata_b_ase _env_ironment variables and starts the server:
 dbenv () {
-    ./admin-tools/sdb.sh start
-    source <(./admin-tools/sdb.sh env)
+    stack exec sdb start  # Start the database server.
+
+    # Set environment variables used by Postgres. Method: execute the "export"
+    # commands outputted by "sdb env". Having these set is useful for the "psql"
+    # and "shell" commands of this script.
+    source <(stack exec sdb env)
 }
 
 main () {
+
+    # If no arguments are given, assume the "devel" arg (command) by default:
+    #
+    # If the "first arg", "$1", is an empty string or not defined, meaning that
+    # there is no first arg, and therefore, there are no args, then...
     if [ -z "$1" ]; then
-        CMD=devel
+        CMD=devel #...set CMD (command) to "devel".
     else
+        # Otherwise, set CMD to our first arg because we *were* given an arg:
         CMD="$1"
+
+        # Next, shift the args over. The second arg is now the first, the third
+        # now the second, and so on. The original first is now CMD (see above).
         shift
     fi
 
-    # Make sure the current directory is where this script is, and is given
-    # in absolute form.
-    #
-    # "$0" is the path to this script, as the kernel gave it: it could be
-    # absolute, or it could be relative.
-    # Dirname takes the "/build.sh" off the end, giving us the path of the
-    # script's containing directory.
-    scriptDirAsGiven="`dirname "$0"`"
-    #
-    # Now we use `readlink -f` to ensure the path is absolute.
-    cd "`readlink -f "$scriptDirAsGiven"`"
+    # Move into the project root, specified in absolute form. The "stack build"
+    # commands below need to be ran from within the project. We use absolute
+    # form because we are suspicious of buggy behavior induced by relative paths.
+    cd "$projectRoot"
 
-    # Configure local Stripe keys for shell, devel, and test.
+
+    # Configure local Stripe keys for shell, devel, and test:
     #
-    # (Recall the current directory is where the script is, due to the "cd"
+    # (Recall that the current directory is the project root, due to the "cd"
     # above.)
     # If the .stripe_keys file exists in the current directory, then ...
     if [ -e .stripe_keys ]; then
 
-        # ... execute it. Note from BUILD.md that .stripe_keys really is written
-        # in Bash (export commands). It exports your keys as environment
-        # variables visible to child processes. So be careful what you launch.
+        # ... load the keys as environment variables. Method: execute the export
+        # commands in the file.
         source .stripe_keys;
 
     # Otherwise, print a friendly reminder:
@@ -80,39 +101,52 @@ main () {
         echo
     fi
 
-    # De-mystification: Recall from stack.yaml that we have 4 packages to compile:
-    # Snowdrift (in the website subdir), crowdmatch, run-persist and admin-tools.
-    # The next line explicitly compiles the Snowdrift package.
-    # This causes a chain-reaction: Snowdrift has crowdmatch built, because the
-    # latter is a direct dependency of the former. Then, crowdmatch causes
-    # run-persist to be built for the same reason. You may run `stack dot` for
-    # a visualizaion of this. Just be sure to run it from within the project.
-    # See the next comment for the remaining package.
+    # Note the "--only-dependencies" argument. The Snowdrift package itself is
+    # not being compiled here, but its dependecies are, including the local
+    # ones. Except it doesn't compile anything already built.
     stack build --flag Snowdrift:library-only --only-dependencies --install-ghc Snowdrift:test &&
 
-    # At time of writing, `stack build` takes strictly zero or one arguments and
-    # does not give an error if you give more than one. It just does the first.
-    # Thus it is important to do this with multiple lines.
+    # We also want to build admin-tools, which contains the sdb program.
+    # The above command does not build it because it is not a dependency of
+    # Snowdrift. Appending "admin-tools" to the above wouldn't get it built
+    # either, because the above only compiles the dependencies of the specified
+    # packages. Note we want to build this package before running dbenv below,
+    # because dbenv needs sdb, and sdb is furnished by this package.
     stack build admin-tools &&
 
+    # Start the database and export some environment variables:
     dbenv &&
+
+    # Now we just act in accordance to the command (CMD) we've been given
+    # (the argument passed to this script or assumed by default):
     case "$CMD" in
-        devel)
-            run_devel
+        devel)          # Recall that we assume this one by default.
+            run_devel   # (Defaulting is the first thing done in main.)
             ;;
         test)
             exec stack test --flag Snowdrift:library-only --fast "$@"
             ;;
-        psql)
+        psql)     # Here's a good reason for us setting those env vars in dbenv.
             exec psql "$@"
             ;;
-        shell)
+        shell)    # And another good reason for having set those env vars.
             exec stack exec bash
             ;;
-        *)
-            echo "$usage"
+        *)        # The star is the catch-all case. If we got here, the arg
+            echo "$usage" # is illegal, so print the usage text.
             ;;
     esac
 }
 
+# Establish project root, in absolute form:
+#
+# `dirname "$0"` gets the path of the script's containing directory, which is
+# also the project root. Notice this method works no matter where the script was
+# launched from (PWD).
+scriptDirAsGiven="`dirname "$0"`"
+#
+# Now we use `readlink -f` to ensure the path is absolute:
+projectRoot="`readlink -f "$scriptDirAsGiven"`"
+
+# Now launch main, passing in all our args:
 main "$@"

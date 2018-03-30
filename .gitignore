@@ -29,9 +29,6 @@ tags
 # Directory for unpacking dependencies for definition lookup:
 dev-tools/unpacked-for-tagging
 
-# Fallback sdb binary made on-the-fly:
-admin-tools/.sdb-fallback
-
 # Intellij IDEA:
 .idea
 *.iml

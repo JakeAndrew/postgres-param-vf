@@ -422,17 +422,29 @@ possibilities.
 
 ### Dependencies
 
-If you introduce a Haskell package dependency, please add it to the appropriate
+If you introduce a Hackage package dependency, please add it to the appropriate
 Cabal file. This is for compatibility with our definition lookup system.
 
 And if you introduce a Haskell dependency that is from an online git repo and
-not Hackage, please add the appropriate code to Step Three of
-dev-tools/tag.sh, using the existing comments and code to see how.
+not Hackage, please add the relevant code to stack.yaml. Also, please add the
+appropriate code to Step Three of dev-tools/tag.sh. In both cases, the existing
+comments and code will show you how to do so.
+
 
 Please do not use any other means of specifying package dependencies to the
 computer. Such tactics may get out of sync with the Cabal files / stack.yaml.
 For example, please do *not* specify dependencies with a special comment to
 Stack on line two of an \*.hs file.
+
+And if you make helper modules that have their own dependencies, please organize
+the list of `build-depends` in the Cabal file with comments saying which
+modules use which dependencies, or at least what the dependency is for.
+
+Further, if your helper modules can be used for things other than what you wrote
+them for, please move them to the `upstreamables` local package and simply list
+`upstreamables` as a dependency in the package containing the main code. Please
+simplify the Cabal file of the main code by un-listing dependencies if
+applicable, knowing that a dependency on `upstreamables` is recursive.
 
 ## Learning resources and helpful tools
 

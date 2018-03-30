@@ -39,10 +39,9 @@ code).
 
 Our sdb tool has several functions for database management.
 
-**The below assumes you have added the `admin-tools` subdirectory to your shell's
-`PATH` variable.** You may also want to add `dev-tools`. Make sure you have
-nothing overriding `sdb.sh` by running `type sdb.sh`. Verify that the path is
-what you expect.
+NB: If you have to run multiple `stack exec` commands, you may enter a shell
+with `stack exec bash` to effectively assume the "stack exec" part, shortening
+`stack exec sdb [arg]` to just `sdb [arg]`.
 
 ### Resetting or updating your development database
 
@@ -50,13 +49,13 @@ To remove any changes and reset your database to the devDB default
 (such as when others have provided a new update you want to try
 or to start clean before making changes you plan to commit) run:
 
-    sdb.sh clean
+    stack exec sdb clean
 
 ### Sharing updates to the devDB database
 
 If you make specific improvements or additions to your database that you think
-will make for a better start for other contributors, use the `sdb.sh env`
-command to get the code needed.
+will make for a better start for other contributors, use the
+`stack exec sdb env` command to get the code needed.
 
 *TODO: add instructions for how to use those commands for those unfamiliar*
 
@@ -67,29 +66,6 @@ Then, the new devDB.sql file may be committed and shared like other changes.
 
 ### More database operations
 
-To see all the commands sdb.sh supports, run:
+To see all the commands sdb supports, run:
 
-    sdb.sh help
-
-### Database directory location
-
-At time of writing, it's right in the project root. If you desire, it should be
-pretty easy to change where it goes. Please see comments in sdb.sh for details.
-The directory is `.postgres-work`.
-
-Note, however, that you are getting into developers' territory if you do this:
-moving your database directory is not yet a documented process. Do you need to
-run `sdb.sh stop` first? Are you going to copy your stuff over? Should you
-update .gitignore? Etc.
-
-### sdb Dev Notes
-
-* The user runs sdb.sh, which then runs the core executable. The parameters are
-propagated.
-
-* We provide ./sdb-fallback.sh in case there is a problem with build.sh. The
-fallback script locally builds the core sdb executable and then launches it,
-passing on its parameters. Note it compiles sdb.hs every run.
-
-* The script, sdb.sh, is well-commented. It should be easy to
-maintain/troubleshoot, using those comments.
+    stack exec sdb help
