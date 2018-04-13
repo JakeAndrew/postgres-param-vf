@@ -70,7 +70,8 @@ pgLineToPair :: PgLine -> (Line, Line)
 pgLineToPair pgLine =
 
     -- Total of 5 cases at time-of-writing.
-    -- Please keep in sync with PgLine in Types.hs.
+    -- Please keep in sync with PgLine in Types.hs and pgLineVerificationReport
+    -- in InputCheck.hs.
     case pgLine of
 
 {-  1 -} ListenAddresses pgAddrs ->
