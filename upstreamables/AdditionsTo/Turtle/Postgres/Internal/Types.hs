@@ -39,7 +39,8 @@ import Data.Text
 -}
 data PgLine =
     -- Total of 5 options used at time of writing.
-    -- Please check w/ pgLineToPairs in "Marshalling".
+    -- Please check w/ pgLineToPairs in "Marshalling" and
+    -- pgLineVerificationReport in InputCheck.hs.
     ListenAddresses PgAddrs             -- 1  (See below about "PgAddrs".)
     | UnixSocketDirectories [FilePath]  -- 2
     | WalLevel WalLevelEnum             -- 3

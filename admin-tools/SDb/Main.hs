@@ -152,10 +152,10 @@ argCasesTwo pghost pgdata = shakeArgs shakeOptions $ do--Entering Rules context,
 
     absoluteDbCluster %>> (actsh $ initCluster pghost pgdata)
 
-    -- Assuming that pghost is always directly in pgWorkDir, we define
+    -- Assuming that pghost is always a grandchild of pgWorkDir, we define
     -- absolutePgWorkDir below instead of passing it in as a third param. This
     -- keeps "argCasesTwo" in second normal form.
-      where absolutePgWorkDir = parent pghost -- It's the parent dir of pghost.
+      where absolutePgWorkDir = (parent . parent) pghost
             absoluteDbRunning = absolutePgWorkDir </> dbRunning
             absoluteDbCluster = absolutePgWorkDir </> dbCluster
 
@@ -167,22 +167,20 @@ initCluster pghost pgdata = do
 
     step "Initializing cluster..."
     let pgdata' = filePathToText pgdata
-    -- NB: "--nosync" and "--auth=peer" must be given in the same Haskell String
-    -- below to indicate that both belong to the "-o". Since no shell interprets
-    -- the below, the Postgres doc tip to add quotes after "-o" does not apply.
-        in hush $ procs "pg_ctl" ["initdb", "-o", "--nosync --auth=peer", "-D", pgdata'] empty
+        in hush $ procs "pg_ctl" ["initdb"] empty
+
+    --debug:
+    err $ "Writing postgresql.conf to: " <> (unsafeFilePathToLine pgdata)
 
     step "Updating cluster configuration file..."
+    liftIO (writeTextFile (pgdata </> "postgresql.conf")
+        "unix_socket_directory\nunix_socket_directories\nlisten_addresses")
     -- Yet again, we pass pghost and pgdata.
     -- Remaining details delegated to module. Please see ModifyPostgresConf.hs.
     simpleModifyPostgresConf pghost pgdata
 
     step "Starting database server..."
-    -- Try to start it:
     procs "pg_ctl" ["start", "-w"] empty
-    -- Get the status. If the status is failure, try starting it again:
-    pgStatus .||. proc "pg_ctl" ["start", "-w"] empty
-
 
     step "Creating databases..."
     procs "createdb" [dbsMain dbnames] empty

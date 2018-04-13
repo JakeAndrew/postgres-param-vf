@@ -8,7 +8,7 @@ module AdditionsTo.Turtle.Postgres.ModifyPostgresConf (modifyPostgresConf) where
     1) Validate the input.
 
     2) If it's good, delegate the task of actually modifying the config file.
-        Please see the Internal/PatternWork directory for info on that.
+        Please see the "Internal" directory for info on that.
 
     3) If it's bad, print the reported error to standard error.
 -}
